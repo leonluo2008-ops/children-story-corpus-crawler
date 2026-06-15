@@ -1,0 +1,75 @@
+{
+  "skill_name": "children-story-corpus-crawler",
+  "evals": [
+    {
+      "id": 1,
+      "name": "摸底：识别名实不符的站",
+      "prompt": "我想从 https://www.qigushi.com/ 下载故事，文字版",
+      "expected_output": "skill 应先去 qigushi.com 抽样 5-10 个内页，发现实际内容不是儿童故事（橙光游戏攻略），然后用 web_search 找替代站（gushi365.com/storymami.com/runruneando.com），让用户选择新目标",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "选源决策：让用户决定用哪个替代站",
+      "prompt": "这些网站哪个比较合适？",
+      "expected_output": "skill 应给出 3 个候选站的对比（内容质量/结构清晰度/估计规模），让用户决策，而不是直接开始爬",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "单篇实测：先摸 HTML 结构再写 extractor",
+      "prompt": "开始爬 gushi365",
+      "expected_output": "skill 应先抓 3 篇样本，定位标题/正文容器/元信息/噪音段，确认 extractor 能干净提取（无推广文字），再进 Step 3",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "分页探测：二分定位真实末页",
+      "prompt": "首页显示 10 页",
+      "expected_output": "skill 应主动提醒'首页分页可能被截断'，用二分探测（如 50/100/150/200）定位真实末页（gushi365 案例 = 113）",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "样本测试 + 4 项零残留 + 用户确认",
+      "prompt": "爬完 100 篇了，给我看看",
+      "expected_output": "skill 应自动跑 4 项零残留扫描（推荐链接围栏/内链/噪音关键词/不该有的头部），把样本包发用户，确认后才进 Step 5 全量",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "噪音修复：textarea 后分享区",
+      "prompt": "末尾有'手机用户点击浏览器底部...'这种噪音",
+      "expected_output": "skill 应识别为'模式 1: textarea 后分享区'，修 extractor 改成'正则截到 <textarea 为止'，重跑全样本扫描验证",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "噪音修复：｜ 推荐链接",
+      "prompt": "末尾有'|小青蛙|小青蛙与荷花|...'这种推荐链接",
+      "expected_output": "skill 应识别为'模式 3: 围栏字符推荐链接'，修 extractor 改成'含 ｜ 字符的整段 <p> 砍'，重跑全样本扫描验证",
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "格式定制：用户不要元信息头部",
+      "prompt": "不需要'作者'、'日期'、'标签'这些信息",
+      "expected_output": "skill 应修改 configs/*.yaml 的 output.header_format 为 '标题：{title}\\n\\n'（或空），重跑样本验证 4 项扫描里'不该有的头部' = 0",
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "扩展：复用 SOP 适配新站",
+      "prompt": "再去爬 storymami.com",
+      "expected_output": "skill 应复用 SOP，复制 configs/gushi365.yaml → configs/storymami.yaml，改 site.base_url/selectors/noise 三个段，跑 5 步验证",
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "合规提醒：训练用语的版权",
+      "prompt": "做训练内容",
+      "expected_output": "skill 应在样本确认阶段提醒版权风险（按用户用途分级：个人研究/内部训练/公开发布），商用场景需训练后改写 + 标数据来源",
+      "files": []
+    }
+  ]
+}

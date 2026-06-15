@@ -1,0 +1,59 @@
+# gushi365.com 适配配置 —— 已验证 (4400+ 篇, 99/100 样本通过)
+# 使用: python3 scripts/extract.py --config configs/gushi365.yaml --ids <ids_file>
+
+site:
+  name: gushi365
+  base_url: https://www.gushi365.com
+  user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0"
+  # 单篇文章 URL 模板（{id} 会被替换为 article ID）
+  article_url_pattern: /info/{id}.html
+  # 列表页路径（分页由 ?paged=N 或 /index_N.html 控制）
+  list_path: /shuiqiangushi/
+
+# HTML 选择器 —— 按站定制
+selectors:
+  title_class: entry-title
+  content_class: single-content
+
+# 噪音清理规则 —— 关键
+# 修法原则: 整段级用 fence_chars / patterns; 段落级用 keywords + 长度限制
+noise:
+  # 围栏字符 —— 含此字符的整段 <p> 直接砍
+  fence_chars:
+    - "｜"   # gushi365 推荐链接围栏
+
+  # 正则模式 —— 命中整段砍
+  patterns:
+    - '<textarea[^>]*>.*?</textarea>'   # 分享/二维码 textarea 整段
+
+  # 关键词清单 —— 短段(60字)/中段(200字)命中砍，长段保留
+  keywords:
+    - 点击
+    - 收藏
+    - 分享
+    - 扫描
+    - 二维码
+    - 朋友圈
+    - 浏览器底部
+    - 右上角
+    - 订阅
+    - 复制好
+    - 已复制
+    - 粘贴
+    - 微博
+    - 微信
+    - QQ空间
+    - 点击这里
+
+# 元信息选择器 —— 可选
+meta_selectors:
+  # 作者 + 日期: <div class="single-cat">作者：XXX 日期：YYY</div>
+  author_date_pattern: '<div class="single-cat">作者：([^<\\s]+)\\s*日期：([^<]+)</div>'
+  # 分类 + 标签: <div class="single-cat">所属分类：<a>XXX</a> 标签：<a>...</a></div>
+  category_tag_pattern: '<div class="single-cat">所属分类：<a[^>]+>([^<]+)</a>\\s*标签：(.*?)</div>'
+
+# 输出格式 —— 默认只输出标题 + 正文（喂训练用）
+output:
+  # 空字符串 = 不写头部
+  header_format: "标题：{title}\n\n"
+  # 若要元信息: "标题：{title}\n作者：{author}\n日期：{date}\n分类：{category}\n标签：{'、'.join(tags) if tags else ''}\n\n"

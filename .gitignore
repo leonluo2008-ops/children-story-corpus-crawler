@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# 运行时输出（不进入版本控制）
+output/
+corpus/
+raw/
+manifest.jsonl
+failures.json
+report.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 环境
+.env
+venv/
+.venv/
+
+# 临时文件
+*.tar.gz
+*.zip
+/tmp/
