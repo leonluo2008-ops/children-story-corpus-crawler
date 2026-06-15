@@ -238,6 +238,54 @@ bad_headers = re.findall(r"^(作者|日期|分类|标签)：", head_text, re.M)
 
 4 项零残留全过。**语料可入库**。
 
+---
+
+## v1.1.1 追加：扩栏目时撞 WAF（2026-06-15）
+
+v1.1 跑完后想扩到其他 13 个栏目（童话 / 成语 / 寓言 / 历史等），结果撞上 gushi365 新上的 WAF。
+
+### 现象
+
+- **首页 HTML 是 WAF 拦截页**（不是真实列表）：
+  ```html
+  <noscript>The browser does not support JavaScript. Cannot be accessed！</noscript>
+  <script>
+    var dt = new Date();
+    dt.setSeconds(dt.getSeconds() + 60);
+    document.cookie = "_wtsjsk=...; path=/";
+    // 然后 setTimeout(location.reload())
+  </script>
+  ```
+- **单篇文章 URL 返回 HTTP 403**（curl 直接抓）
+
+### 探测结果
+
+| 栏目 | 探测 URL 数 | 当前可爬？ |
+|---|---|---|
+| `/shuiqiangushi/`（睡前故事）| 2140 | ✅ 已爬 2101 |
+| `/tonghuagushi/`（童话）| 1271 | ❌ WAF 403 |
+| `/xiaogushi/`（儿童小故事）| 111 | ❌ WAF 403 |
+| 其他 11 个栏目 | 0 | ❌ WAF 403 |
+
+### 绕过 WAF 的候选方案（**未实施**）
+
+| 方案 | 难度 | 说明 |
+|---|---|---|
+| `browser_navigate` 拿真实 cookie + JS 渲染 | 中 | 一次 browser 拿到 cookie 后用 curl 带 cookie，但 cookie 可能有时效 |
+| 换站（storymami / runruneando）| 低 | 同类站，可能没 WAF |
+| 接受现状（2101 篇够用）| 零 | v1.1 用户决定走这条 |
+
+### 教训（写进 SKILL.md）
+
+> **Step 1 摸底时先看首页 HTML 是不是 WAF 拦截页**——如果首页是 JS + cookie 验证，curl 永远拿不到内容。
+
+### gushi365 已知有效范围
+
+- ✅ **睡前故事栏目**（`/shuiqiangushi/`）：**2101 篇可用**（v1.1 之前无 WAF 时爬的）
+- ❌ **其他栏目**：当前 WAF 拦截，需绕道方案才能爬
+
+如果未来 WAF 撤掉，可以重跑 `scan_all_cats.sh` + `extract.py` 把其他栏目也纳入。
+
 | 经验 | 教训 |
 |---|---|
 | **Step 1 必须抽样内页** | qigushi.com 案例教训——只看首页文字会被骗 |

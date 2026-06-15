@@ -51,11 +51,19 @@ Step 5 全量       分批抓 + 实时校验 + 失败率报警 → 出库       
 
 **不通过不准进 Step 2**——这是 qigushi.com 案例最痛的教训：站名"儿童故事网"，实际 90% 是橙光游戏攻略。
 
+**先看首页 HTML 是不是 WAF 拦截页**——如果首页是 JS + cookie 验证，curl 永远拿不到内容（gushi365 v1.1.1 踩坑）。
+
 ```bash
 UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0"
 mkdir -p /tmp/<site>_corpus && cd /tmp/<site>_corpus
 curl -sSL -A "$UA" "https://<目标站>/" -o home.html
 curl -sSL -A "$UA" "https://<目标站>/map.html" -o sitemap.html  # 或 sitemap.xml
+
+# ⚠️ WAF 探测 — 看首页是不是 JS + cookie 验证页
+if grep -q "Browser security check\|noscript.*JavaScript\|document.cookie" home.html; then
+  echo "⚠️ WAF 拦截 — curl 拿不到内容，需要 browser_navigate 或换站"
+  exit 1
+fi
 
 # 抽样 5-10 个内页
 grep -oE 'href="[^"]+\.html"' home.html | sort -u | head -10 > urls.txt
@@ -69,11 +77,12 @@ done
 - ⚠️ 名实不符 → `web_search` 找替代站（见下）
 - ✅ 有官方 API/RSS → 直接调，跳过 Step 2-3
 
-**已验证可用站点**：
+**已验证可用站点**（**注意 WAF 状态**）：
 | 站 | 路径 | 内容 |
 |---|---|---|
-| `gushi365.com/shuiqiangushi/` | `/shuiqiangushi/index_N.html` | 睡前故事（4400+ 篇） |
-| `gushi365.com/tonghua/` | `/tonghua/index_N.html` | 童话 |
+| `gushi365.com/shuiqiangushi/` | `/shuiqiangushi/index_N.html` | 睡前故事（**2101 篇已爬** ✅）|
+| `gushi365.com/tonghuagushi/` | `/tonghuagushi/index_N.html` | 童话（探测到 1271 URL，**WAF 拦截** ⚠️）|
+| `gushi365.com` 其他 11 个栏目 | — | **WAF 拦截** ⚠️ |
 | `storymami.com/cn` | `/cn/?page=N` | 睡前故事（按类型/长度） |
 | `runruneando.com/zh-cn` | `/zh-cn/gushi/` | 睡前故事（按年龄分级） |
 
@@ -326,6 +335,8 @@ children-story-corpus-crawler/
 
 ## 版本历史
 
+- **v1.1.1** (2026-06-15) — 扩栏目撞 WAF。发现 gushi365 新上"Browser security check"拦截：cookie + JS 验证 → curl 永远 403。睡前故事（无 WAF 时爬的 2101 篇）保留可用，其他 13 个栏目 WAF 拦截暂不可爬。SKILL.md Step 1 加 WAF 探测代码 + 已验证站点表加状态列。
+
 - **v1.1** (2026-06-15) — 全量踩坑追加：坑 1「分页末页 ≠ 真实总量」（估算 4400 实际 2140）/ 坑 2「按 ID 范围爬是反模式」（13000+ 浪费 404）/ 坑 3「validate.py 两个误报」（标题里的 ｜ / 正文里"作者："段落）。validate.py 跳过标题行 + 只检查前 5 行；SKILL.md Step 3 加"按真实 URL 列表去重" + "反模式"清单。
 
-- **v1.0.0** (2026-06-15) — 初版。gushi365.com 适配完成（4400+ 篇），噪音模式 3 类（textarea 分享区/页内重复标题/｜ 推荐链接）。
+- **v1.0.0** (2026-06-15) — 初版。gushi365.com 适配完成（2101 篇），噪音模式 3 类（textarea 分享区/页内重复标题/｜ 推荐链接）。
