@@ -13,7 +13,12 @@ from collections import defaultdict
 
 
 def scan(corpus_dir: Path, site_domain: str, noise_keywords=None):
-    """返回 dict {check_name: [files_with_issue]}。"""
+    """返回 dict {check_name: [files_with_issue]}。
+
+    4 项检查只看正文（去掉头部第一行），避免：
+    - 标题里含 ｜ / 噪音字符
+    - 标题里偶然命中关键词
+    """
     noise_keywords = noise_keywords or [
         "手机用户点击", "电脑用户", "点击这里", "朋友圈",
         "收藏或分享", "二维码", "微信", "QQ空间",
@@ -25,18 +30,26 @@ def scan(corpus_dir: Path, site_domain: str, noise_keywords=None):
 
     for f in files:
         text = f.read_text()
-        # 1. 推荐链接围栏
-        if fence in text:
+        # 跳过第一行（"标题：XXX"）和紧随的空行
+        lines = text.split("\n")
+        if lines and lines[0].startswith("标题："):
+            body = "\n".join(lines[2:])  # 跳过 "标题：..." 和空行
+        else:
+            body = text
+
+        # 1. 推荐链接围栏（仅正文）
+        if fence in body:
             issues["fence_chars"].append(f.name)
-        # 2. 内链残留
-        if site_domain in text:
+        # 2. 内链残留（仅正文）
+        if site_domain in body:
             issues["internal_link"].append(f.name)
-        # 3. 噪音关键词
-        hits = [k for k in noise_keywords if k in text]
+        # 3. 噪音关键词（仅正文）
+        hits = [k for k in noise_keywords if k in body]
         if hits:
             issues["noise_keywords"].append(f"{f.name} ({', '.join(hits)})")
-        # 4. 不该有的头部
-        bad_headers = re.findall(r"^(作者|日期|分类|标签)：", text, re.M)
+        # 4. 不该有的头部（只检查前 5 行，避免误判正文里的"作者："段落）
+        head_text = "\n".join(lines[:5])
+        bad_headers = re.findall(r"^(作者|日期|分类|标签)：", head_text, re.M)
         if bad_headers:
             issues["unexpected_header"].append(f"{f.name} ({', '.join(bad_headers)})")
 

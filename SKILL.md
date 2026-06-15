@@ -109,6 +109,8 @@ grep -nE '<h1|entry-title|single-content|class="author"|datetime|class="post-dat
 
 **首页分页显示 ≠ 真实末页**（gushi365 案例：首页显示 10 页，真实 113 页）。
 
+**分页末页 ≠ 真实总量**（gushi365 案例：估算 113 × 39 = 4400 篇，实际只有 2140 篇）。
+
 ```bash
 # 看首页分页区
 grep -oE 'class="page-numbers" href="[^"]+"' home.html | head -10
@@ -117,6 +119,15 @@ grep -oE 'class="page-numbers" href="[^"]+"' home.html | head -10
 for p in 50 100 150 200; do
   curl -sSL -A "$UA" -o /dev/null -w "%{http_code}\n" "https://<站>/<列表路径>/index_${p}.html"
 done
+
+# 扫全部 N 页拿真实 URL 列表（**必须做，不要按 ID 范围试**）
+for p in $(seq 1 113); do
+  if [ $p -eq 1 ]; then URL="https://<站>/<列表路径>/index.html"
+  else URL="https://<站>/<列表路径>/index_${p}.html"; fi
+  curl -sSL -A "$UA" "$URL" | grep -oE 'href="<URL_PATTERN>"|<URL_PATTERN>"' | sort -u
+done | sort -u > all_urls.txt
+sed 's|.*/info/||; s|\.html||; s|"||g' all_urls.txt > all_ids.txt
+# 真实 ID 数 = wc -l all_ids.txt
 ```
 
 **常见分页 URL 模式**：
@@ -124,6 +135,10 @@ done
 - WordPress 自定义：`/shuiqiangushi/index_N.html`（gushi365）
 - Discuz：`/forum-N-1.html`
 - 自研：`/list_N.html`
+
+**反模式**：
+- ❌ 按 ID 范围 `[800..18700]` 批量试——ID 不连续，13000+ 浪费的 404 请求
+- ❌ 按 `末页 × 平均URL数` 估算总量——单页 URL 数量方差大，估算可能偏高 2 倍
 
 ---
 
@@ -310,5 +325,7 @@ children-story-corpus-crawler/
 - `examples/gushi365_run.md` — 完整实战记录（v1→v3 三轮修复）
 
 ## 版本历史
+
+- **v1.1** (2026-06-15) — 全量踩坑追加：坑 1「分页末页 ≠ 真实总量」（估算 4400 实际 2140）/ 坑 2「按 ID 范围爬是反模式」（13000+ 浪费 404）/ 坑 3「validate.py 两个误报」（标题里的 ｜ / 正文里"作者："段落）。validate.py 跳过标题行 + 只检查前 5 行；SKILL.md Step 3 加"按真实 URL 列表去重" + "反模式"清单。
 
 - **v1.0.0** (2026-06-15) — 初版。gushi365.com 适配完成（4400+ 篇），噪音模式 3 类（textarea 分享区/页内重复标题/｜ 推荐链接）。
